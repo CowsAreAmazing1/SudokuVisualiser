@@ -58,7 +58,6 @@ begin
     r = textpos[numindices]
     foreach(x -> poly!(grid, boxvert(x), color = (col, 0.2)), map(y -> map(x -> Int(1+floor(x/(linegap[2] - linegap[1]))), y), r))
 
-    temp = 
     foreach(t -> begin
         #=
             poly takes array of points which is made in map which stretches a square of 
