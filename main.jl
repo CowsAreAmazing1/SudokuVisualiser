@@ -49,24 +49,24 @@ begin
     f
 end
 
-num = 3
+num = 2
 
 begin
     numindices = findall(x -> x == num, board)
     arc!.(grid, textpos[numindices], 0.5, 0, 2pi, linewidth = 3, color = col)
 
     r = textpos[numindices]
-    foreach(x -> poly!(grid, boxvert(x), color = (col, 0.2)), map(y -> map(x -> Int(1+floor(x/(linegap[2] - linegap[1]))), y), r))
+    foreach(x -> poly!(grid, boxvert(x), color = (col, 0.6)), map(y -> map(x -> Int(1+floor(x/(linegap[2] - linegap[1]))), y), r))
 
     foreach(t -> begin
         #=
             poly takes array of points which is made in map which stretches a square of 
             points made below by adding corners to the center of each selected number
         =#
-        poly!(grid, map(((x,y),c) -> Point2f(c == 0 ? low : high, y), t, x1), color = (col, 0.2))
-        poly!(grid, map(((x,y),c) -> Point2f(x, c == 0 ? low : high), t, y1), color = (col, 0.2))
+        poly!(grid, map(((x,y),c) -> Point2f(c == 0 ? low : high, y), t, x1), color = (col, 0.6))
+        poly!(grid, map(((x,y),c) -> Point2f(x, c == 0 ? low : high), t, y1), color = (col, 0.6))
     end, map(x -> Point2f.(Ref(x) .+ [[-0.5,0.5], [0.5,0.5], [0.5,-0.5], [-0.5,-0.5]]), r))
+
+    foreach((p,t) -> if t == string(num); text!(grid, p, text = t, align = (:center, :center), fontsize = 1, markerspace = :data, color = :cyan) end, textpos, vb)
+
 end
-
-
-
