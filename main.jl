@@ -2,71 +2,69 @@ using DelimitedFiles, GLMakie
 col = :black
 board = rot180(readdlm("geet.csv", '\t', Int8, '\n'))
 
+function polyer(ax::Axis, p::CartesianIndex)
+    shifter(p) = (p[2], 10-p[1])
 
-
-x1 = [0,1,1,0]
-y1 = [1,1,0,0]
-function boxvert(p #= really an index =#)
-    edge = [low, linegap[1], linegap[2], high]
-    d = linegap[2] - linegap[1]
-    Point2f.(Ref(edge[p]) .+ [[0,0], [0,d], [d,d], [d,0]])
+    poly!(ax, Point2.([
+        shifter(p),
+        shifter(p) .- (0,1), 
+        shifter(p) .- (1,1),
+        shifter(p) .- (1,0),
+    ]), color = (:yellow, 0.3))
 end
 
 
 
+
+
+num = 4
+
 begin
-    f = Figure(size=(600,600))
-    grid = Axis(f[1,1])
-    vb = string.(board)
+    f = Figure(size = (600,600))
+    grid = Axis(f[1,1], aspect = DataAspect())
+    hidedecorations!(grid); hidespines!(grid)
+
+    lines!(grid, [
+        Point2((0,0)),
+        Point2((9,0)),
+        Point2((9,9)),
+        Point2((0,9)),
+        Point2((0,0)),
+    ], color = :black)
+
+    foreach(x -> begin
+        color = x % 3 == 0 ? :black : (:gray, 0.5)
+        lw = x % 3 == 0 ? 3 : 1
+        lines!(grid, [ (x, 0), (x, 9) ], color = color, linewidth = lw)
+        lines!(grid, [ (0, x), (9, x) ], color = color, linewidth = lw)
+    end, 1:8)
 
 
-    #f[1, 1] = buttongrid = GridLayout(tellwidth = false)
-    #buttonlabels = string.(1:9)
-    #buttons = buttongrid[1:3, 1:3] = [Button(f, label = l) for l in buttonlabels]
+    texts = vec(map(x -> x == 0 ? " " : string(x), board))
+    poses = [ Point2((x, y) .+ (0.5,0.5)) for y in 8:-1:0, x in 0:8 ]
+    text!(
+        grid, vec(poses), text = texts,
+        align = (:center, :center), fontsize = 1, markerspace = :data
+    )
 
 
-    spacing = 1; padding = spacing * 0.5; width = 6 + 2 * spacing
-    a = vcat([0,1,2], spacing .+ [2,3,4], 2 * spacing .+ [4,5,6])
-    low = minimum(a)-padding; high = maximum(a)+padding
-    lines!(grid, Point2f.([
-        (low,low),(low,high),(high,high),(high,low),(low,low)
-    ]), color = :black)
-    grid.aspect = DataAspect(); hidedecorations!(grid); hidespines!(grid)
-    
-    linegap = [(a[3] + a[4]) * 0.5, (a[6] + a[7]) * 0.5]
-    lines!(grid, [Point2f(linegap[1],low),Point2f(linegap[1],high)], color = :black)
-    lines!(grid, [Point2f(linegap[2],low),Point2f(linegap[2],high)], color = :black)
-    lines!(grid, [Point2f(low,linegap[1]),Point2f(high,linegap[1])], color = :black)
-    lines!(grid, [Point2f(low,linegap[2]),Point2f(high,linegap[2])], color = :black)
-    
-    textpos = [ Point2f(j,i)  for i in a, j in reverse(a)]
-    foreach((p,t) -> if t != "0"; text!(grid, p, text = t, align = (:center, :center), fontsize = 1, markerspace = :data) end, textpos, vb)
+    highlighters = CartesianIndex{2}[]
+    append!(highlighters, findall(x -> x == num, board))
 
+    temp = []
+    for i in highlighters
+        append!(temp, [ CartesianIndex(i[1], j) for j in 1:9] )
+        append!(temp, [ CartesianIndex(j, i[2]) for j in 1:9] )
+        append!(temp, [ CartesianIndex((i[1] - (i[1]-1) % 3, i[2] - (i[2]-1) % 3) .+ (x,y)) for x in 0:2, y in 0:2 ] )
+    end
+    append!(highlighters, temp)
+    append!(highlighters,  findall(x -> x != 0 && x != num, board))
+    unique!(highlighters)
 
-    #Box(f[1, 1], color = (:red, 0.2), strokewidth = 0)
-    #Box(f[1, 2], color = (:blue, 0.2), strokewidth = 0)
-    #rowsize!(f.layout, 1, Aspect(1,1))
+    polyer.(grid, highlighters)
+
     f
 end
 
-num = 2
 
-begin
-    numindices = findall(x -> x == num, board)
-    arc!.(grid, textpos[numindices], 0.5, 0, 2pi, linewidth = 3, color = col)
 
-    r = textpos[numindices]
-    foreach(x -> poly!(grid, boxvert(x), color = (col, 0.6)), map(y -> map(x -> Int(1+floor(x/(linegap[2] - linegap[1]))), y), r))
-
-    foreach(t -> begin
-        #=
-            poly takes array of points which is made in map which stretches a square of 
-            points made below by adding corners to the center of each selected number
-        =#
-        poly!(grid, map(((x,y),c) -> Point2f(c == 0 ? low : high, y), t, x1), color = (col, 0.6))
-        poly!(grid, map(((x,y),c) -> Point2f(x, c == 0 ? low : high), t, y1), color = (col, 0.6))
-    end, map(x -> Point2f.(Ref(x) .+ [[-0.5,0.5], [0.5,0.5], [0.5,-0.5], [-0.5,-0.5]]), r))
-
-    foreach((p,t) -> if t == string(num); text!(grid, p, text = t, align = (:center, :center), fontsize = 1, markerspace = :data, color = :cyan) end, textpos, vb)
-
-end
