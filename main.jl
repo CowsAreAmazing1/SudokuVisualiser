@@ -65,6 +65,3 @@ begin
 
     f
 end
-
-
-
