@@ -17,7 +17,7 @@ end
 
 
 
-num = 4
+num = 5
 
 begin
     f = Figure(size = (600,600))
