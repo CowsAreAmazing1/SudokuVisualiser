@@ -1,6 +1,6 @@
 
 using DelimitedFiles, GLMakie
-using Makie.Colors
+
 
 col = :black
 board = readdlm("geet.csv", '\t', Int8, '\n')
@@ -19,11 +19,13 @@ function polyer(ax::Axis, p::CartesianIndex, color)
     ]), color = color)
 end
 
+add_once!(dict::Dict{T, Any}, key::T, value) where T = !haskey(dict, key) && (dict[key] = value)
 
 
-f = Figure(size = (800,800))
 
 begin
+f = Figure(size = (600,300))
+
 grid = Axis(f[1,1], aspect = DataAspect())
 hidedecorations!(grid); hidespines!(grid)
 deregister_interaction!(grid, :rectanglezoom)
@@ -52,18 +54,16 @@ text!(
     grid, vec(poses), text = texts,
     align = (:center, :center), fontsize = 0.7, markerspace = :data, depth_shift = -1.0,
 )
-end
 
 
 f[1,2] = buttongrid = GridLayout(tellwidth = false, tellheight = false)
 
 labels = [ string(i) for i in 1:9 ]
-buttons = buttongrid[1:3, 1:3] = [Button(f, label = l) for l in labels]
+buttons = buttongrid[1:3, 1:3] = [Button(f, label = l, width = 100, height = 100) for l in labels]
 
 
-color_grid = [ RGB ]
-
-highlight_plots = [ polyer for x in 1:9, y in 1:9 ]
+color_grid = Observable([ (:black, 0.0) for _ in 1:9, _ in 1:9])
+highlight_plots = [ polyer(grid, CartesianIndex(x, y), @lift($(color_grid)[x,y])) for x in 1:9, y in 1:9 ]
 
 for i in 1:9
     on(buttons[i].clicks) do _
@@ -72,34 +72,42 @@ for i in 1:9
 end
 
 num = Observable(0)
-to_highlight = Observable(Tuple{CartesianIndex, Any}[])
 
 on(num) do n
-    global highlight_plots
-    delete!.(grid, highlight_plots)
-    highlight_plots = []
-
+    to_highlight = Dict{CartesianIndex, Any}()
+    
+    foreach(pos -> add_once!(to_highlight, pos, (:black, 0.3)), findall(x -> x != 0 && x != n, board))
+    
     match_positions = findall(==(n), board)
-
+    foreach(pos -> add_once!(to_highlight, pos, (:red, 0.5)), match_positions)
+    
     for pos in match_positions
-        append!(to_highlight[], [ ( CartesianIndex(pos[1], y), (:cyan)) for y in 1:9] )
-        append!(to_highlight[], [ ( CartesianIndex(x, pos[2]), (:cyan)) for x in 1:9] )
-        append!(to_highlight[], [ ( CartesianIndex((
-            pos[1] - (pos[1]-1) % 3, pos[2] - (pos[2]-1) % 3
-        ) .+ (x,y)), (:cyan)) for x in 0:2, y in 0:2 ] )
-    end
+        foreach(y -> add_once!(to_highlight, CartesianIndex(pos[1], y), (:cyan, 0.7)), 1:9)
+        foreach(x -> add_once!(to_highlight, CartesianIndex(x, pos[2]), (:cyan, 0.7)), 1:9)
+        
+        foreach(x -> begin
+        foreach(y -> begin
+            add_once!(to_highlight, CartesianIndex( (pos[1] - (pos[1]-1) % 3, pos[2] - (pos[2]-1) % 3) .+ (x,y) ), (:cyan, 0.7))
+        end, 0:2)
+    end, 0:2)
 
+    # square_offsets = CartesianIndices((-1:1, -1:1))
 
-    unique!(first, to_highlight[])
-
-    # for (pos, col) in to_highlight
-    #     push!(highlight_plots, )
+    # # Loop through each 3x3 square
+    # for x in 2:3:8, y in 2:3:8 
+        
     # end
+
+
 end
 
+color_grid[] .= Ref((:black, 0.0))
 
-on(to_highlight) do (pos, col)
-    global highlight_plots
-    push!(highlight_plots, polyer(grid, pos, col))
+for (pos, col) in to_highlight
+    color_grid[][pos] = col
+end
+notify(color_grid)
 end
 
+f
+end
