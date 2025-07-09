@@ -91,8 +91,9 @@ on(num) do n
         end, 0:2)
     end, 0:2)
 
+    # Add secondary line detection here!!!!!!!!!!!!!
+            
     # square_offsets = CartesianIndices((-1:1, -1:1))
-
     # # Loop through each 3x3 square
     # for x in 2:3:8, y in 2:3:8 
         
